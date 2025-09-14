@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +8,9 @@ import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GraduationCap, Eye, EyeOff } from "lucide-react"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { signup as apiSignup } from "@/api/auth"
+import { useAuth } from "@/context/AuthContext"
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,11 +24,34 @@ export default function SignUp() {
     university: "",
     year: ""
   })
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+  const { login } = useAuth()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle signup logic here
-    console.log("Signup attempt:", formData)
+    setError(null)
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const name = `${formData.firstName} ${formData.lastName}`.trim()
+      // Create account on backend (saves token to localStorage)
+      await apiSignup(formData.email, formData.password, name)
+      // Update AuthContext state by logging in (aligns with spec: only login/logout exposed)
+      await login(formData.email, formData.password)
+      navigate("/dashboard", { replace: true })
+    } catch (err: any) {
+      const message = err?.message || "Signup failed. Please try again."
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -50,6 +76,12 @@ export default function SignUp() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -61,6 +93,7 @@ export default function SignUp() {
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
                     className="bg-background"
+                    autoComplete="given-name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -72,6 +105,7 @@ export default function SignUp() {
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
                     className="bg-background"
+                    autoComplete="family-name"
                   />
                 </div>
               </div>
@@ -86,6 +120,7 @@ export default function SignUp() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                   className="bg-background"
+                  autoComplete="email"
                 />
               </div>
 
@@ -128,6 +163,7 @@ export default function SignUp() {
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
                     className="bg-background pr-10"
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"
@@ -156,6 +192,7 @@ export default function SignUp() {
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     required
                     className="bg-background pr-10"
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"
@@ -192,8 +229,8 @@ export default function SignUp() {
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary-light">
-                Create Account
+              <Button type="submit" className="w-full bg-primary hover:bg-primary-light" disabled={loading}>
+                {loading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
 

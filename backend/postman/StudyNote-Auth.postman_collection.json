@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "StudyNote - Auth + Documents",
+    "_postman_id": "2f2f2c5d-1f6c-4fb6-8d9f-5f1c5e332b3b",
+    "description": "Phase 1 (Auth) + Phase 2 (Documents: presign, register, metadata) for AI Study Note Tool backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "authEmail", "value": "" },
+    { "key": "password", "value": "StrongPassword123" },
+    { "key": "access_token", "value": "" },
+    { "key": "file_url", "value": "" },
+    { "key": "document_id", "value": "" },
+    { "key": "filename", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Set a random email if not provided",
+                  "let email = pm.collectionVariables.get('authEmail');",
+                  "if (!email) {",
+                  "  email = `user_${Date.now()}@example.com`;",
+                  "  pm.collectionVariables.set('authEmail', email);",
+                  "}",
+                  "let pwd = pm.collectionVariables.get('password') || 'StrongPassword123';",
+                  "pm.collectionVariables.set('password', pwd);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', json.access_token);",
+                  "pm.collectionVariables.set('user_id', json.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{password}}\",\n  \"name\": \"Ada\",\n  \"university\": \"Uni\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/signup", "host": ["{{baseUrl}}"], "path": ["auth", "signup"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('authEmail')) { pm.collectionVariables.set('authEmail', `user_${Date.now()}@example.com`); }",
+                  "if (!pm.collectionVariables.get('password')) { pm.collectionVariables.set('password', 'StrongPassword123'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', json.access_token);",
+                  "pm.collectionVariables.set('user_id', json.user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Signed URL",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let fname = pm.collectionVariables.get('filename');",
+                  "if (!fname) {",
+                  "  fname = `example_${Date.now()}.pdf`;",
+                  "  pm.collectionVariables.set('filename', fname);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('file_url', json.file_url);",
+                  "pm.collectionVariables.set('upload_url', json.upload_url);",
+                  "pm.collectionVariables.set('signed_key', json.key);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"{{filename}}\",\n  \"content_type\": \"application/pdf\",\n  \"size_bytes\": 12345\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/documents/signed-url", "host": ["{{baseUrl}}"], "path": ["documents", "signed-url"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('document_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sample Doc\",\n  \"file_url\": \"{{file_url}}\",\n  \"course\": \"Course 101\",\n  \"size_bytes\": 12345\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/documents", "host": ["{{baseUrl}}"], "path": ["documents"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Has id', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{document_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["documents", "{{document_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
