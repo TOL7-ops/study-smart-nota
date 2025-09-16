@@ -4,8 +4,8 @@ from typing import List
 
 from dotenv import load_dotenv
 
-# Load .env if present
-load_dotenv()
+# Load .env if present (override to ensure changes are picked up on reload)
+load_dotenv(override=True)
 
 
 class Settings:
@@ -19,7 +19,9 @@ class Settings:
 
     # CORS
     # Comma-separated list, e.g. "http://localhost:5173,http://localhost:8080"
-    FRONTEND_ORIGINS: str = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://localhost:8080")
+    FRONTEND_ORIGINS: str = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://localhost:8080,https://study-smart-nota.vercel.app")
+    # Diagnostic toggle: when true, allow all origins (credentials must be disabled)
+    CORS_ALLOW_ALL: bool = os.getenv("CORS_ALLOW_ALL", "false").lower() == "true"
 
     # JWT
     JWT_SECRET: str = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "change-me-in-prod"))
